@@ -160,6 +160,7 @@ int main(void)
 		  ledToggle(&ledYellow);
 		  ledToggle(&ledBlue);
 	  }
+	  HAL_Delay(100);
   }
 
 //  MX_ETH_Init();
@@ -406,7 +407,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		_tick = HAL_GetTick();
 	}
 
-	if(_tick - _startTick > 100 && HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin) == GPIO_PIN_SET)
+	if(_tick - _startTick > 10 && HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin) == GPIO_PIN_SET)
 	{
 		isButtonPressed = 1;
 		_pressed = 0;
