@@ -11,6 +11,7 @@
 #include "stdlib.h"
 #include "string.h"
 
+#define USE_SPI 1
 
 // Firmware data for self-test
 // Reference values based on firmware version
@@ -76,6 +77,8 @@ void MFRC522_Init(MFRC *dev, uint16_t chipSelectPin, GPIO_TypeDef * csPort, uint
 	dev->_resetPowerDownPin = resetPowerDownPin;
 	dev->_resetPowerDownPort = rsPDPort;
 	PCD_Init(dev);
+
+	PCD_DumpVersionToSerial(dev);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -90,11 +93,14 @@ void PCD_WriteRegister(	MFRC *dev, PCD_Register reg,	///< The register to write 
 									uint8_t value			///< The value to write.
 								) {
 	HAL_StatusTypeDef status;
+#ifdef USE_SPI
 	HAL_GPIO_WritePin(dev->_chipSelectPort, dev->_chipSelectPin, GPIO_PIN_RESET);		// Select slave
 	status = HAL_SPI_Transmit(dev->hspi, &reg, 1, 1000);						// MSB == 0 is for writing. LSB is not used in address. Datasheet section 8.1.2.3.
 	status = HAL_SPI_Transmit(dev->hspi, &value, 1, 1000);
 	HAL_GPIO_WritePin(dev->_chipSelectPort, dev->_chipSelectPin, GPIO_PIN_SET);
+#else
 
+#endif
 } // End PCD_WriteRegister()
 
 /**
@@ -105,12 +111,17 @@ void PCD_WriteRegisters(	MFRC *dev, PCD_Register reg,	///< The register to write
 									uint8_t count,			///< The number of bytes to write to the register
 									uint8_t *values		///< The values to write. Byte array.
 								) {
+#ifdef USE_SPI
 	HAL_GPIO_WritePin(dev->_chipSelectPort, dev->_chipSelectPin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(dev->hspi, &reg, 1, 1000);						// MSB == 0 is for writing. LSB is not used in address. Datasheet section 8.1.2.3.
 
 	HAL_SPI_Transmit(dev->hspi, values, count, 3000);
 
 	HAL_GPIO_WritePin(dev->_chipSelectPort, dev->_chipSelectPin, GPIO_PIN_SET);
+#else
+
+
+#endif
 } // End PCD_WriteRegister()
 
 /**
@@ -153,16 +164,17 @@ void PCD_ReadRegisters(	MFRC *dev, PCD_Register reg,	///< The register to read f
 		uint8_t mask = (0xFF << rxAlign) & 0xFF;
 		// Read value and tell that we want to read the same address again.
 		uint8_t value;
-		HAL_SPI_Receive(dev->hspi, &value, 1, 1000);
+		HAL_SPI_TransmitReceive(dev->hspi, &address,  &value, 1, 1000);
+
 		// Apply mask to both current value of values[0] and the new data in value.
 		values[0] = (values[0] & ~mask) | (value & mask);
 		index++;
 	}
 	while (index < count) {
-		HAL_SPI_Receive(dev->hspi, values + index, 1, 1000);
+		HAL_SPI_TransmitReceive(dev->hspi, &address,  &values[index], 1, 1000);
 		index++;
 	}
-	HAL_SPI_Receive(dev->hspi, values + index, 1, 1000);
+	HAL_SPI_TransmitReceive(dev->hspi, &address,  &values[index], 1, 1000);
 	HAL_GPIO_WritePin(dev->_chipSelectPort, dev->_chipSelectPin, GPIO_PIN_SET);
 } // End PCD_ReadRegister()
 
@@ -859,6 +871,7 @@ StatusCode PICC_Select(	MFRC *dev, Uid *uid,			///< Pointer to Uid struct. Norma
 					currentLevelKnownBits = 32;
 					// Run loop again to do the SELECT.
 				}
+				HAL_Delay(10);
 			}
 		} // End of while (!selectDone)
 		
@@ -1628,7 +1641,7 @@ void PICC_DumpMifareClassicSectorToSerial(MFRC *dev, Uid *uid,			///< Pointer to
 			status = PCD_Authenticate(dev, PICC_CMD_MF_AUTH_KEY_A, firstBlock, key, uid);
 			if (status != STATUS_OK) {
 				SEGGER_RTT_printf(0, "PCD_Authenticate() failed: ");
-				SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+				SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 				return;
 			}
 		}
@@ -1637,7 +1650,7 @@ void PICC_DumpMifareClassicSectorToSerial(MFRC *dev, Uid *uid,			///< Pointer to
 		status = MIFARE_Read(dev, blockAddr, buffer, &byteCount);
 		if (status != STATUS_OK) {
 			SEGGER_RTT_printf(0, "MIFARE_Read() failed: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 			continue;
 		}
 		// Dump data
@@ -1717,7 +1730,7 @@ void PICC_DumpMifareUltralightToSerial(MFRC *dev) {
 		status = MIFARE_Read(dev, page, buffer, &byteCount);
 		if (status != STATUS_OK) {
 			SEGGER_RTT_printf(0, "MIFARE_Read() failed: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 			break;
 		}
 		// Dump data
@@ -1793,7 +1806,7 @@ bool MIFARE_OpenUidBackdoor(MFRC *dev, bool logErrors) {
 		if(logErrors) {
 			SEGGER_RTT_printf(0, "Card did not respond to 0x40 after HALT command. Are you sure it is a UID changeable one?");
 			SEGGER_RTT_printf(0, "Error name: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 		}
 		return false;
 	}
@@ -1815,7 +1828,7 @@ bool MIFARE_OpenUidBackdoor(MFRC *dev, bool logErrors) {
 		if(logErrors) {
 			SEGGER_RTT_printf(0, "Error in communication at command 0x43, after successfully executing 0x40");
 			SEGGER_RTT_printf(0, "Error name: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 		}
 		return false;
 	}
@@ -1875,7 +1888,7 @@ bool MIFARE_SetUid(MFRC *dev, uint8_t *newUid, uint8_t uidSize, bool logErrors) 
 				// We tried, time to give up
 				if (logErrors) {
 					SEGGER_RTT_printf(0, "Failed to authenticate to card for reading, could not set UID: ");
-					SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+					SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 				}
 				return false;
 			}
@@ -1896,7 +1909,7 @@ bool MIFARE_SetUid(MFRC *dev, uint8_t *newUid, uint8_t uidSize, bool logErrors) 
 	if (status != STATUS_OK) {
 		if (logErrors) {
 			SEGGER_RTT_printf(0, "MIFARE_Read() failed: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 			SEGGER_RTT_printf(0, "Are you sure your KEY A for sector 0 is 0xFFFFFFFFFFFF?");
 		}
 		return false;
@@ -1928,7 +1941,7 @@ bool MIFARE_SetUid(MFRC *dev, uint8_t *newUid, uint8_t uidSize, bool logErrors) 
 	if (status != STATUS_OK) {
 		if (logErrors) {
 			SEGGER_RTT_printf(0, "MIFARE_Write() failed: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 		}
 		return false;
 	}
@@ -1954,7 +1967,7 @@ bool MIFARE_UnbrickUidSector(MFRC *dev, bool logErrors) {
 	if (status != STATUS_OK) {
 		if (logErrors) {
 			SEGGER_RTT_printf(0, "MIFARE_Write() failed: ");
-			SEGGER_RTT_printf(0, GetStatusCodeName(dev, status));
+			SEGGER_RTT_printf(0, "%s", GetStatusCodeName(dev, status));
 		}
 		return false;
 	}
@@ -1995,5 +2008,7 @@ bool PICC_IsNewCardPresent(MFRC *dev) {
  */
 bool PICC_ReadCardSerial(MFRC *dev) {
 	StatusCode result = PICC_Select(dev, &dev->uid, 0);
+
+	SEGGER_RTT_printf(0, "PICC_Select return value: %d", result);
 	return (result == STATUS_OK);
 } // End 

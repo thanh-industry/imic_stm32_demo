@@ -49,6 +49,8 @@ ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptor
 
 ETH_HandleTypeDef heth;
 
+I2C_HandleTypeDef hi2c1;
+
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim1;
@@ -79,13 +81,224 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
-
+MFRC rfidReader;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void writeNameToRFIDCard(char *firstName, char *lastName)
+{
+	  // Prepare key - all keys are set to FFFFFFFFFFFFh at chip delivery from the factory.
+	  MIFARE_Key key;
+	  for (uint8_t i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
+
+
+	  SEGGER_RTT_printf(0, "Card UID:");    //Dump UID
+	  for (uint8_t i = 0; i < rfidReader.uid.size; i++) {
+	    SEGGER_RTT_printf(0, rfidReader.uid.uidByte[i] < 0x10 ? " 0" : " ");
+	    SEGGER_RTT_printf(0, "%02X", rfidReader.uid.uidByte[i]);
+	  }
+	  SEGGER_RTT_printf(0, " PICC type: ");   // Dump PICC type
+	  PICC_Type piccType = PICC_GetType(&rfidReader, rfidReader.uid.sak);
+	  SEGGER_RTT_printf(0, "%s", PICC_GetTypeName(&rfidReader, piccType));
+
+	  uint8_t buffer[34];
+	  uint8_t block;
+	  StatusCode status;
+	  uint8_t len;
+
+	  if(firstName == NULL || lastName == NULL)
+	  {
+		  return;
+	  }
+	  // Ask personal data: Family name
+
+	  memcpy(buffer, firstName, strlen(firstName));
+	  for (uint8_t i = strlen(firstName); i < 30; i++) buffer[i] = ' ';     // pad with spaces
+
+	  block = 1;
+	  //SEGGER_RTT_printfln(F("Authenticating using key A..."));
+	  status = PCD_Authenticate(&rfidReader, PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfidReader.uid));
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "PCD_Authenticate() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+	  else SEGGER_RTT_printf(0, "PCD_Authenticate() success: ");
+
+	  // Write block
+	  status = MIFARE_Write(&rfidReader, block, buffer, 16);
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "MIFARE_Write() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+	  else SEGGER_RTT_printf(0, "MIFARE_Write() success: ");
+
+	  block = 2;
+	  //SEGGER_RTT_printfln(F("Authenticating using key A..."));
+	  status = PCD_Authenticate(&rfidReader, PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfidReader.uid));
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "PCD_Authenticate() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+
+	  // Write block
+	  status = MIFARE_Write(&rfidReader, block, &buffer[16], 16);
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "MIFARE_Write() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+	  else SEGGER_RTT_printf(0, "MIFARE_Write() success: ");
+
+	  // Ask personal data: First name
+	  memcpy(buffer, lastName, strlen(lastName));
+	  for (uint8_t i = strlen(lastName); i < 20; i++) buffer[i] = ' ';     // pad with spaces
+
+	  block = 4;
+	  //SEGGER_RTT_printfln(F("Authenticating using key A..."));
+	  status = PCD_Authenticate(&rfidReader, PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfidReader.uid));
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "PCD_Authenticate() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+
+	  // Write block
+	  status = MIFARE_Write(&rfidReader, block, buffer, 16);
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "MIFARE_Write() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+	  else SEGGER_RTT_printf(0, "MIFARE_Write() success: ");
+
+	  block = 5;
+	  //SEGGER_RTT_printfln(F("Authenticating using key A..."));
+	  status = PCD_Authenticate(&rfidReader, PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfidReader.uid));
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "PCD_Authenticate() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+	    return;
+	  }
+
+	  // Write block
+	  status = MIFARE_Write(&rfidReader, block, &buffer[16], 16);
+	  if (status != STATUS_OK) {
+	    SEGGER_RTT_printf(0, "MIFARE_Write() failed: ");
+	    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader ,status));
+	    return;
+	  }
+	  else SEGGER_RTT_printf(0, "MIFARE_Write() success: ");
+
+
+	  SEGGER_RTT_printf(0, " ");
+	  PICC_HaltA(&rfidReader); // Halt PICC
+	  PCD_StopCrypto1(&rfidReader);  // Stop encryption on PCD
+}
+
+
+void readNameFromRFIDCard(void) {
+
+  // Prepare key - all keys are set to FFFFFFFFFFFFh at chip delivery from the factory.
+  MIFARE_Key key;
+  for (uint8_t i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
+
+  //some variables we need
+  uint8_t block;
+  uint8_t len;
+  StatusCode status;
+
+  //-------------------------------------------
+
+//  // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
+//  if ( ! PICC_IsNewCardPresent(&rfidReader)) {
+//    return;
+//  }
+//
+//  // Select one of the cards
+//  if ( ! PICC_ReadCardSerial(&rfidReader)) {
+//    return;
+//  }
+
+  SEGGER_RTT_printf(0, "**Card Detected:**");
+
+  //-------------------------------------------
+
+  //PICC_DumpDetailsToSerial(&rfidReader, &(rfidReader.uid)); //dump some details about the card
+
+  //PICC_DumpToSerial(&rfidReader, &(rfidReader.uid));      //uncomment this to see all blocks in hex
+
+  //-------------------------------------------
+
+  SEGGER_RTT_printf(0, "Name: ");
+
+  uint8_t buffer1[18];
+
+  block = 4;
+  len = 18;
+
+  //------------------------------------------- GET FIRST NAME
+  status = PCD_Authenticate(&rfidReader, PICC_CMD_MF_AUTH_KEY_A, 4, &key, &(rfidReader.uid)); //line 834 of MFRC522.cpp file
+  if (status != STATUS_OK) {
+    SEGGER_RTT_printf(0, "Authentication failed: ");
+    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+    return;
+  }
+
+  status = MIFARE_Read(&rfidReader, block, buffer1, &len);
+  if (status != STATUS_OK) {
+    SEGGER_RTT_printf(0, "Reading failed: ");
+    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+    return;
+  }
+
+  //PRINT FIRST NAME
+
+    buffer1[16] = 0;
+
+    SEGGER_RTT_printf(0, "%s", buffer1);
+
+
+  SEGGER_RTT_printf(" ");
+
+  //---------------------------------------- GET LAST NAME
+
+  uint8_t buffer2[18];
+  block = 1;
+
+  status = PCD_Authenticate(&rfidReader, PICC_CMD_MF_AUTH_KEY_A, 1, &key, &(rfidReader.uid)); //line 834
+  if (status != STATUS_OK) {
+    SEGGER_RTT_printf(0, "Authentication failed: ");
+    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+    return;
+  }
+
+  status = MIFARE_Read(&rfidReader, block, buffer2, &len);
+  if (status != STATUS_OK) {
+    SEGGER_RTT_printf(0, "Reading failed: ");
+    SEGGER_RTT_printf(0, "%s", GetStatusCodeName(&rfidReader, status));
+    return;
+  }
+
+  //PRINT LAST NAME
+  buffer2[16] = 0;
+  SEGGER_RTT_printf(0, "%s", buffer2 );
+
+
+
+  //----------------------------------------
+
+  SEGGER_RTT_printf(0, "\n**End Reading**\n");
+
+  PICC_HaltA(&rfidReader);
+  PCD_StopCrypto1(&rfidReader);
+}
 /* USER CODE END 0 */
 
 /**
@@ -122,6 +335,7 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM1_Init();
   MX_SPI1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 //  HAL_TIM_Base_Start_IT(&htim6);
 
@@ -170,12 +384,16 @@ int main(void)
 //  HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, (uint32_t *)&pwmData, 10);
 
 
-  MFRC rfidReader;
   rfidReader.hspi = &hspi1;
   MFRC522_Init(&rfidReader, GPIO_PIN_7, GPIOC, GPIO_PIN_3, GPIOB);
 
-
-
+//  char _buffer[100];
+//  char rx_buffer[100];
+//  memset(_buffer, 0, 100);
+//
+//  float temperature = 27.5, humidity = 90;
+//  snprintf(_buffer, sizeof(_buffer), "Temperature: %f, Humidity %f\r\n", temperature, humidity);
+//  HAL_UART_Transmit(&huart3, _buffer, strlen(_buffer), 1000);
 
 
   /* USER CODE END 2 */
@@ -185,8 +403,25 @@ int main(void)
   while (1)
   {
 
-	  HAL_Delay(100);
+	  if(PICC_IsNewCardPresent(&rfidReader) == false)
+	  {
+		  SEGGER_RTT_printf(0, "Card not found!!!!!\r\n");
+		  HAL_Delay(1000);
+		  continue;
 
+	  }
+	  SEGGER_RTT_printf(0, "Card found!!!!!\r\n");
+
+	  if(PICC_ReadCardSerial(&rfidReader) == true)
+	  {
+		  //PICC_DumpToSerial(&rfidReader, &rfidReader.uid);
+	  }
+
+	  //writeNameToRFIDCard("Thanh", "Pham");
+
+	  HAL_Delay(1000);
+
+	  readNameFromRFIDCard();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -285,6 +520,54 @@ static void MX_ETH_Init(void)
   /* USER CODE BEGIN ETH_Init 2 */
 
   /* USER CODE END ETH_Init 2 */
+
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 400000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
 
 }
 

@@ -223,6 +223,7 @@ typedef struct MFRC{
 	GPIO_TypeDef *_chipSelectPort;
 	GPIO_TypeDef *_resetPowerDownPort;
 	SPI_HandleTypeDef *hspi;
+	I2C_HandleTypeDef *hi2c;
 	Uid uid;
 }MFRC;
 /////////////////////////////////////////////////////////////////////////////////////
@@ -292,11 +293,11 @@ StatusCode PCD_NTAG216_AUTH(MFRC *dev, uint8_t *passWord, uint8_t pACK[]);
 StatusCode PCD_MIFARE_Transceive(MFRC *dev, uint8_t *sendData, uint8_t sendLen, bool acceptTimeout);
 // old function used too much memory, now name moved to flash; if you need char, copy from flash to memory
 // const char *GetStatusCodeName(uint8_t code);
-static const char *GetStatusCodeName(MFRC *dev, StatusCode code);
-static PICC_Type PICC_GetType(MFRC *dev, uint8_t sak);
+const char *GetStatusCodeName(MFRC *dev, StatusCode code);
+PICC_Type PICC_GetType(MFRC *dev, uint8_t sak);
 // old function used too much memory, now name moved to flash; if you need char, copy from flash to memory
 // const char *PICC_GetTypeName(uint8_t type);
-static const char *PICC_GetTypeName(MFRC *dev, PICC_Type type);
+const char *PICC_GetTypeName(MFRC *dev, PICC_Type type);
 
 // Support functions for debuging
 void PCD_DumpVersionToSerial();
