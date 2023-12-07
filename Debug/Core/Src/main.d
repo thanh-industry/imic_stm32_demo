@@ -34,6 +34,57 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
+ ../Core/Inc/FreeRTOSConfig.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
+ ../LWIP/App/lwip.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/opt.h \
+ ../LWIP/Target/lwipopts.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/debug.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/arch.h \
+ ../Middlewares/Third_Party/LwIP/system/arch/cc.h \
+ ../Middlewares/Third_Party/LwIP/system/arch/cpu.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/mem.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/memp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/priv/memp_std.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/priv/memp_priv.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/priv/mem_priv.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/stats.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/netif/etharp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/etharp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/pbuf.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/err.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip4_addr.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/def.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/netif.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip_addr.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip6_addr.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/def.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip4.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip4.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ethernet.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ieee.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/etharp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/netif/ethernet.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/dhcp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/udp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip6.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/timeouts.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/sys.h \
+ ../Middlewares/Third_Party/LwIP/system/arch/sys_arch.h \
+ ../LWIP/Target/ethernetif.h \
+ D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/tcpip.h \
  ../Drivers/Device/MFRC522.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
@@ -71,4 +122,55 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
+../Core/Inc/FreeRTOSConfig.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h:
+../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
+../LWIP/App/lwip.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/opt.h:
+../LWIP/Target/lwipopts.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/debug.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/arch.h:
+../Middlewares/Third_Party/LwIP/system/arch/cc.h:
+../Middlewares/Third_Party/LwIP/system/arch/cpu.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/mem.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/memp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/priv/memp_std.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/priv/memp_priv.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/priv/mem_priv.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/stats.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/netif/etharp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/etharp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/pbuf.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/err.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip4_addr.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/def.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/netif.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip_addr.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip6_addr.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/def.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip4.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip4.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ethernet.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ieee.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/etharp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/netif/ethernet.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/dhcp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/udp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/ip6.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/ip.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/prot/udp.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/timeouts.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/sys.h:
+../Middlewares/Third_Party/LwIP/system/arch/sys_arch.h:
+../LWIP/Target/ethernetif.h:
+D:/IMIC/stm32_rfid_scanner/Middlewares/Third_Party/LwIP/src/include/lwip/tcpip.h:
 ../Drivers/Device/MFRC522.h:

@@ -18,7 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "string.h"
+#include "cmsis_os.h"
+#include "lwip.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -42,13 +43,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-ETH_TxPacketConfig TxConfig;
-ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
-
-ETH_HandleTypeDef heth;
-
 I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
@@ -57,12 +51,37 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim6;
 DMA_HandleTypeDef hdma_tim1_ch1;
 
-UART_HandleTypeDef huart3;
+UART_HandleTypeDef huart4;
+DMA_HandleTypeDef hdma_uart4_tx;
+DMA_HandleTypeDef hdma_uart4_rx;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 
+osThreadId_t myFirstTask;
+const osThreadAttr_t myFirstTask_attributes = {
+  .name = "myFirstTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh, //osPriorityNormal
+};
+
+
+osMutexId_t myMtx = NULL;
+osMutexId_t myMtx2 = NULL;
+osMutexAttr_t myMtxAtt = {NULL, osMutexRecursive, NULL, NULL};
+osMutexAttr_t myMtxAtt2 = {NULL, osMutexRecursive, NULL, NULL};
+uint16_t data  = 6;
+
+char myBuffer1[1024];
+char myBuffer2[1024];
 
 int isButtonPressed = 1;
 
@@ -75,14 +94,16 @@ static int _pressed = 1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_ETH_Init(void);
-static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_UART4_Init(void);
+void StartDefaultTask(void *argument);
+
 /* USER CODE BEGIN PFP */
+void myFirstTaskHandle(void *argument);
 MFRC rfidReader;
 /* USER CODE END PFP */
 
@@ -329,16 +350,27 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_ETH_Init();
-  MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_TIM6_Init();
   MX_TIM1_Init();
   MX_SPI1_Init();
   MX_I2C1_Init();
+  MX_UART4_Init();
   /* USER CODE BEGIN 2 */
 //  HAL_TIM_Base_Start_IT(&htim6);
+//HAL_UART_Transmit(&huart4, "hello world1234\r\n", 17, 1000);
+//HAL_UART_Transmit_IT(&huart4, "uart_transmit_it\r\n", 18);
+//HAL_Delay(500);
+//HAL_UART_AbortTransmit_IT(&huart4);
+  int j;
+  for(j = 0; j < 1024; j++)
+  {
+	  myBuffer1[j] = 'a';
+	  myBuffer2[j] = 'b';
+  }
 
+//HAL_UART_Transmit_DMA(&huart4, myBuffer, strlen(myBuffer));
+//HAL_UART_AbortTransmitCpltCallback(&huart4);
 
 //  ledOn(&ledRed);
 //  ledOn(&ledYellow);
@@ -398,6 +430,53 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  myMtx = osMutexNew (&myMtxAtt);
+  myMtx2 = osMutexNew (&myMtxAtt2);
+
+  if(myMtx == NULL || myMtx2 == NULL)
+  {
+	  while(1);
+  }
+
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+
+
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  myFirstTask = osThreadNew(myFirstTaskHandle, NULL, &myFirstTask_attributes);
+
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -417,7 +496,7 @@ int main(void)
 		  //PICC_DumpToSerial(&rfidReader, &rfidReader.uid);
 	  }
 
-	  //writeNameToRFIDCard("Thanh", "Pham");
+	  writeNameToRFIDCard("Phuc", "Vu");
 
 	  HAL_Delay(1000);
 
@@ -425,6 +504,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//	  memset(myBuffer, 0, 64);
+//	  HAL_UART_Receive(&huart4, myBuffer, 1000, 100);
+//	  if (strlen(myBuffer) != 0){
+////		  HAL_UART_Transmit(&huart4, myBuffer, strlen(myBuffer), 1000);
+//		  snprintf(myBuffer2, 64, "received text: %s \r\n", myBuffer);
+//		  HAL_UART_Transmit_DMA(&huart4, myBuffer2, strlen(myBuffer2));
+//
+//	  }
+
+
   }
   /* USER CODE END 3 */
 }
@@ -472,55 +561,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief ETH Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ETH_Init(void)
-{
-
-  /* USER CODE BEGIN ETH_Init 0 */
-
-  /* USER CODE END ETH_Init 0 */
-
-   static uint8_t MACAddr[6];
-
-  /* USER CODE BEGIN ETH_Init 1 */
-
-  /* USER CODE END ETH_Init 1 */
-  heth.Instance = ETH;
-  MACAddr[0] = 0x00;
-  MACAddr[1] = 0x80;
-  MACAddr[2] = 0xE1;
-  MACAddr[3] = 0x00;
-  MACAddr[4] = 0x00;
-  MACAddr[5] = 0x00;
-  heth.Init.MACAddr = &MACAddr[0];
-  heth.Init.MediaInterface = HAL_ETH_RMII_MODE;
-  heth.Init.TxDesc = DMATxDscrTab;
-  heth.Init.RxDesc = DMARxDscrTab;
-  heth.Init.RxBuffLen = 1524;
-
-  /* USER CODE BEGIN MACADDRESS */
-
-  /* USER CODE END MACADDRESS */
-
-  if (HAL_ETH_Init(&heth) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  memset(&TxConfig, 0 , sizeof(ETH_TxPacketConfig));
-  TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
-  TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
-  TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT;
-  /* USER CODE BEGIN ETH_Init 2 */
-
-  /* USER CODE END ETH_Init 2 */
-
 }
 
 /**
@@ -723,35 +763,35 @@ static void MX_TIM6_Init(void)
 }
 
 /**
-  * @brief USART3 Initialization Function
+  * @brief UART4 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART3_UART_Init(void)
+static void MX_UART4_Init(void)
 {
 
-  /* USER CODE BEGIN USART3_Init 0 */
+  /* USER CODE BEGIN UART4_Init 0 */
 
-  /* USER CODE END USART3_Init 0 */
+  /* USER CODE END UART4_Init 0 */
 
-  /* USER CODE BEGIN USART3_Init 1 */
+  /* USER CODE BEGIN UART4_Init 1 */
 
-  /* USER CODE END USART3_Init 1 */
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
+  /* USER CODE END UART4_Init 1 */
+  huart4.Instance = UART4;
+  huart4.Init.BaudRate = 115200;
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE;
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART3_Init 2 */
+  /* USER CODE BEGIN UART4_Init 2 */
 
-  /* USER CODE END USART3_Init 2 */
+  /* USER CODE END UART4_Init 2 */
 
 }
 
@@ -798,10 +838,17 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA2_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
 }
@@ -848,6 +895,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : STLK_RX_Pin STLK_TX_Pin */
+  GPIO_InitStruct.Pin = STLK_RX_Pin|STLK_TX_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
   /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
   GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -869,7 +924,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(MFR522_CS_PIN_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -897,14 +952,105 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void myFirstTaskHandle(void *argument)
 {
-	static int cnt = 0;
+	uint32_t counter = 0;
+	SEGGER_RTT_printf(0, "Enter My First Task\r\n");
+	while(1)
+	{
+		if(osMutexAcquire(myMtx2, 1000) == osOK){
+			HAL_UART_Transmit(&huart4, myBuffer1,10, 100);
+			data += 1;
+			SEGGER_RTT_printf(0, "Mutex 2 taken in task 2\r\n");
 
-	//ledToggle(&ledYellow);
+			if(osMutexAcquire(myMtx, 1000000) == osOK)
+			{
+				SEGGER_RTT_printf(0, "Mutex 1 taken in task 2\r\n");
+				HAL_Delay(5000);
+				osMutexRelease(myMtx);
+			}else{
+				SEGGER_RTT_printf(0, "can't take mutex1 in task 2\r\n");
 
+			}
+			osMutexRelease(myMtx2);
+		}else{
+			SEGGER_RTT_printf(0, "can't take mutex 2 in task 2\r\n");
+
+		}
+
+		osDelay(500);
+	}
 }
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* init code for LWIP */
+  MX_LWIP_Init();
+  /* USER CODE BEGIN 5 */
+  uint32_t counter = 0;
+  /* Infinite loop */
+  for(;;)
+  {
+	  if(osMutexAcquire(myMtx, 1000) == osOK)
+	  {
+			SEGGER_RTT_printf(0, "Default Task Running, Counter = %d\r\n", counter++);
+			SEGGER_RTT_printf(0, "Mutex 1 taken in task 1\r\n");
+			data += 2;
+
+			if(osMutexAcquire(myMtx2, 1000000) == osOK)
+			{
+				SEGGER_RTT_printf(0, "Mutex 2 taken in task 1\r\n");
+				HAL_Delay(1000);
+				osMutexRelease(myMtx2);
+
+
+
+			}else{
+				SEGGER_RTT_printf(0, "can't take mutex2 in task 1\r\n");
+
+			}
+
+
+
+			osMutexRelease(myMtx);
+
+	  }else{
+		  SEGGER_RTT_printf(0, "can't take mutex1 in task 1\r\n");
+	  }
+
+    osDelay(100);
+  }
+  /* USER CODE END 5 */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM2 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM2) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
